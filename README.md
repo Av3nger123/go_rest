@@ -1,9 +1,12 @@
 A simple Backend for a Todo APP
 
-built using:
+**Built by**
 - language: Go
 - framework: Fiber
 - database: MongoDB
+
+**Pre-req** 
+- locally running mongo db server
 
 After Cloning To run
 
