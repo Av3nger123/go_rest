@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"time"
 	"todo-app/config"
 	"todo-app/models"
@@ -39,10 +40,15 @@ func GetTodoById(c *fiber.Ctx) error {
 
 	id := c.Params("id")
 
+	objId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	var todo models.Todo
-	if err := config.TodoCollection.FindOne(ctx, bson.M{"_id": id}).Decode(&todo); err != nil {
+	if err := config.TodoCollection.FindOne(ctx, bson.M{"_id": objId}).Decode(&todo); err != nil {
 		return c.SendStatus(fiber.StatusNotFound)
 	}
 	return c.JSON(todo)
@@ -62,13 +68,19 @@ func CreateTodo(c *fiber.Ctx) error {
 		return err
 	}
 
-	newTodo.ID = result.InsertedID.(primitive.ObjectID).Hex()
+	newTodo.ID = result.InsertedID.(primitive.ObjectID).String()
 	return c.JSON(newTodo)
 
 }
 func UpdateTodo(c *fiber.Ctx) error {
 
 	id := c.Params("id")
+
+	objId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+
 	var updatedTodo models.Todo
 
 	if err := c.BodyParser(&updatedTodo); err != nil {
@@ -77,8 +89,12 @@ func UpdateTodo(c *fiber.Ctx) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	update := bson.M{"$set": updatedTodo}
-	if _, err := config.TodoCollection.UpdateOne(ctx, bson.M{"_id": id}, update); err != nil {
+	update := bson.M{"$set": bson.M{
+		"title":  updatedTodo.Title,
+		"isDone": updatedTodo.IsDone,
+	}}
+	if _, err := config.TodoCollection.UpdateOne(ctx, bson.M{"_id": objId}, update); err != nil {
+		fmt.Print(err)
 		return c.SendStatus(fiber.StatusNotFound)
 	}
 	return c.JSON(updatedTodo)
@@ -86,10 +102,16 @@ func UpdateTodo(c *fiber.Ctx) error {
 }
 func DeleteTodo(c *fiber.Ctx) error {
 	id := c.Params("id")
+
+	objId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if _, err := config.TodoCollection.DeleteOne(ctx, bson.M{"_id": id}); err != nil {
+	if _, err := config.TodoCollection.DeleteOne(ctx, bson.M{"_id": objId}); err != nil {
 		return c.SendStatus(fiber.StatusNotFound)
 	}
 
